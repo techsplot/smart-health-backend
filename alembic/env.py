@@ -1,4 +1,13 @@
 import os
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from models.user import User  # Required so Alembic detects the table
+from database import Base     # Base used in your models
+
+target_metadata = Base.metadata
+
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
@@ -21,10 +30,6 @@ config.set_main_option("sqlalchemy.url", database_url)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# ✅ Import your Base metadata
-from database import Base  # <-- change this import path to wherever your Base is defined
-
-target_metadata = Base.metadata
 
 # ✅ Offline migration config
 def run_migrations_offline():
