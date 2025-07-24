@@ -7,3 +7,4 @@ bcrypt
 passlib
 python-dotenv
 psycopg2-binary
+alembic
