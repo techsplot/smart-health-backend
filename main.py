@@ -17,7 +17,7 @@ app = FastAPI()
 # Allow CORS for Next.js frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,7 +52,6 @@ app.include_router(admin.router)
 @app.get("/")
 def root():
     return {"message": "Smart Health System Backend is running"}
-
 
 
 
