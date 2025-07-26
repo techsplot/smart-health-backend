@@ -15,6 +15,10 @@ from fastapi import HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from models import user as user_model
 from fastapi.responses import JSONResponse
+from pydantic import EmailStr
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig  # If you want real email later
+from fastapi import BackgroundTasks
+
 
 
 
@@ -60,6 +64,13 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: str | None = None
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+    
 # 🧩 DB Dependency
 def get_db():
     db = SessionLocal()
@@ -192,3 +203,75 @@ def refresh_token(request: Request):
     new_access_token = create_access_token(data={"sub": email})
     return {"access_token": new_access_token}
 
+
+
+@router.post("/forgot-password")
+def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not found")
+
+    reset_token = create_access_token({"sub": user.email}, expires_delta=timedelta(minutes=30))
+    
+    # You could send this in email instead
+    return {"reset_token": reset_token, "message": "Reset token generated"}
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+@router.post("/reset-password")
+def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=400, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.hashed_password = get_password_hash(data.new_password)
+    db.commit()
+    return {"message": "Password has been reset successfully"}
+
+
+
+@router.post("/request-password-reset")
+def request_password_reset(email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    token_data = {"sub": user.email}
+    reset_token = create_access_token(data=token_data, expires_delta=timedelta(minutes=15))
+
+    reset_link = f"http://localhost:5173/reset-password?token={reset_token}"  # Update this URL for production
+    email_body = f"Hi {user.full_name or ''},\n\nClick the link to reset your password:\n{reset_link}\n\nIf you didn't request this, ignore it."
+
+    from utils.email import send_email
+    background_tasks.add_task(send_email, "Password Reset", user.email, email_body)
+    
+    return {"message": "Reset email sent"}
+
+
+
+@router.post("/reset-password")
+def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+    except JWTError:
+        raise HTTPException(status_code=403, detail="Invalid or expired token")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.hashed_password = get_password_hash(data.new_password)
+    db.commit()
+    
+    return {"message": "Password reset successful"}

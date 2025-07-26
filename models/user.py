@@ -11,4 +11,5 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=True)
     role = Column(String, nullable=False)
+    specialization = Column(String, nullable=True)  # 👈 Add this
     is_active = Column(Boolean, default=True)

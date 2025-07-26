@@ -1,7 +1,7 @@
 # backend/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth, appointments, admin, prescriptions, pharmacy
+from routers import auth, appointments, admin, prescriptions, pharmacy, doctors
 # Import routers (to be created)
 # from routers import auth, appointments, prescriptions, pharmacy, admin, ml_classify
 from database import SessionLocal
@@ -48,6 +48,8 @@ app.include_router(prescriptions.router)
 app.include_router(pharmacy.router)
 app.include_router(admin.router)
 # app.include_router(ml_classify.router, prefix="/api/ml")
+app.include_router(doctors.router, prefix="/api")  # mount it
+
 
 @app.get("/")
 def root():
