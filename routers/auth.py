@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import os
 
+from utils.email import send_email
 from database import SessionLocal
 from models.user import User  # ✅ FIX: Correct import
 from fastapi import Security
@@ -16,7 +17,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from models import user as user_model
 from fastapi.responses import JSONResponse
 from pydantic import EmailStr
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig  # If you want real email later
 from fastapi import BackgroundTasks
 
 
@@ -239,7 +239,6 @@ def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
     return {"message": "Password has been reset successfully"}
 
 
-
 @router.post("/request-password-reset")
 def request_password_reset(email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == email).first()
@@ -249,13 +248,19 @@ def request_password_reset(email: str, background_tasks: BackgroundTasks, db: Se
     token_data = {"sub": user.email}
     reset_token = create_access_token(data=token_data, expires_delta=timedelta(minutes=15))
 
-    reset_link = f"http://localhost:5173/reset-password?token={reset_token}"  # Update this URL for production
-    email_body = f"Hi {user.full_name or ''},\n\nClick the link to reset your password:\n{reset_link}\n\nIf you didn't request this, ignore it."
+    reset_link = f"http://localhost:5173/reset-password?token={reset_token}"
+    email_body = f"""Hi {user.full_name or ''},
 
-    from utils.email import send_email
+Click the link below to reset your password:
+
+{reset_link}
+
+If you didn't request this, you can ignore this email."""
+
     background_tasks.add_task(send_email, "Password Reset", user.email, email_body)
     
     return {"message": "Reset email sent"}
+
 
 
 
