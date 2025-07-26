@@ -21,8 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from utils.email import send_password_reset_email
-from utils.dependencies import get_db
-from models import User  # or wherever your JWT function lives
+from utils.dependencies import get_db  # or wherever your JWT function lives
 
 router = APIRouter()
 
