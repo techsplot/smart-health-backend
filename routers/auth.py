@@ -18,6 +18,14 @@ from models import user as user_model
 from fastapi.responses import JSONResponse
 from pydantic import EmailStr
 from fastapi import BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from sqlalchemy.orm import Session
+from datetime import timedelta
+from utils.email import send_password_reset_email
+from utils.dependencies import get_db
+from models import User  # or wherever your JWT function lives
+
+router = APIRouter()
 
 
 
@@ -244,23 +252,14 @@ def request_password_reset(email: str, background_tasks: BackgroundTasks, db: Se
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     token_data = {"sub": user.email}
     reset_token = create_access_token(data=token_data, expires_delta=timedelta(minutes=15))
 
-    reset_link = f"http://localhost:5173/reset-password?token={reset_token}"
-    email_body = f"""Hi {user.full_name or ''},
+    # Send email in background using Resend
+    background_tasks.add_task(send_password_reset_email, user.email, reset_token)
 
-Click the link below to reset your password:
-
-{reset_link}
-
-If you didn't request this, you can ignore this email."""
-
-    background_tasks.add_task(send_email, "Password Reset", user.email, email_body)
-    
-    return {"message": "Reset email sent"}
-
+    return {"message": "Password reset email sent"}
 
 
 
