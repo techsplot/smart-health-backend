@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 from models.user import User
 import os
-from routers.auth import get_current_user
 from models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
