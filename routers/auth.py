@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import os
 
-from utils.email import send_email
 from database import SessionLocal
 from models.user import User  # ✅ FIX: Correct import
 from fastapi import Security
