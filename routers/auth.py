@@ -169,21 +169,27 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
 # 🔐 Login Route
 
-@router.post("/login", response_model=Token)
+@router.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(user_model.User).filter(user_model.User.email == user.email).first()
-    access_token = create_access_token(data={"sub": user.email})
-    refresh_token = create_refresh_token(data={"sub": user.email})
-    
     if not db_user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    
     if not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     access_token = create_access_token(data={"sub": db_user.email})
-    
+    refresh_token = create_refresh_token(data={"sub": db_user.email})
+
+    # Build user info dictionary
+    user_info = {
+        "id": db_user.id,
+        "email": db_user.email,
+        "full_name": db_user.full_name,
+        "role": db_user.role
+    }
+
     return {
+        "user": user_info,
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer"

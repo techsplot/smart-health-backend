@@ -26,6 +26,7 @@ def send_password_reset_email(to_email: str, token: str):
     """
 
     try:
+        
         resend.Emails.send({
             "from": EMAIL_FROM,
             "to": [to_email],
